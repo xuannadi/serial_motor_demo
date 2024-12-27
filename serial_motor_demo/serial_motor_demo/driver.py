@@ -96,11 +96,11 @@ class MotorDriver(Node):
 
     def motor_command_callback(self, motor_command):
         if (motor_command.is_pwm):
-            self.send_pwm_motor_command(motor_command.mot_1_req_rad_sec, motor_command.mot_2_req_rad_sec)
+            self.send_pwm_motor_command(motor_command.mot_1_req_rad_sec*1.07, motor_command.mot_2_req_rad_sec) 
         else:
             # counts per loop = req rads/sec X revs/rad X counts/rev X secs/loop 
             scaler = (1 / (2*math.pi)) * self.get_parameter('encoder_cpr').value * (1 / self.get_parameter('loop_rate').value)
-            mot1_ct_per_loop = motor_command.mot_1_req_rad_sec * scaler
+            mot1_ct_per_loop = motor_command.mot_1_req_rad_sec * scaler*1.18 
             mot2_ct_per_loop = motor_command.mot_2_req_rad_sec * scaler
             self.send_feedback_motor_command(mot1_ct_per_loop, mot2_ct_per_loop)
 
@@ -112,13 +112,15 @@ class MotorDriver(Node):
             time_diff = new_time - self.last_enc_read_time
             self.last_enc_read_time = new_time
 
+            # m1_diff = int(resp[0]/1.176) - self.last_m1_enc
+            # self.last_m1_enc = int(resp[0]/1.186)
             m1_diff = resp[0] - self.last_m1_enc
             self.last_m1_enc = resp[0]
             m2_diff = resp[1] - self.last_m2_enc
             self.last_m2_enc = resp[1]
 
             rads_per_ct = 2*math.pi/self.get_parameter('encoder_cpr').value
-            self.m1_spd = m1_diff*rads_per_ct/time_diff
+            self.m1_spd = m1_diff*rads_per_ct/time_diff/1.18 
             self.m2_spd = m2_diff*rads_per_ct/time_diff
 
             spd_msg = MotorVels()
@@ -127,7 +129,7 @@ class MotorDriver(Node):
             self.speed_pub.publish(spd_msg)
 
             enc_msg = EncoderVals()
-            enc_msg.mot_1_enc_val = self.last_m1_enc
+            enc_msg.mot_1_enc_val = int(self.last_m1_enc/1.176)
             enc_msg.mot_2_enc_val = self.last_m2_enc
             self.encoder_pub.publish(enc_msg)
 
